@@ -12,8 +12,7 @@ public class GenerateGrid : MonoBehaviour
     [SerializeField]
     private int _gridHeight;
 
-    [SerializeField]
-    private float _stepTime = 1;
+    private float _stepTime = 0.5f;
 
     [SerializeField]
     private Cell _cell;
@@ -207,6 +206,11 @@ public class GenerateGrid : MonoBehaviour
                 }
             }
         }
+    }
+
+    public void ChangeSpeed(Single value)
+    {
+        _stepTime = value;
     }
 
     private IEnumerator PlayRoutine()
