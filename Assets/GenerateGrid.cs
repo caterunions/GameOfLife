@@ -6,12 +6,15 @@ using Unity.Mathematics;
 
 public class GenerateGrid : MonoBehaviour
 {
+    // width of the cell grid
     [SerializeField]
     private int _gridWidth;
 
+    // height of the cell grid
     [SerializeField]
     private int _gridHeight;
 
+    // time between steps
     private float _stepTime = 0.5f;
 
     [SerializeField]
@@ -19,9 +22,9 @@ public class GenerateGrid : MonoBehaviour
 
     private Cell[,] _grid;
 
-    private Cell[,] _savedGrid;
-
     private bool _looping = false;
+
+    // cache coroutine
     private Coroutine _playRoutine = null;
 
     private void OnEnable()
@@ -31,18 +34,22 @@ public class GenerateGrid : MonoBehaviour
 
     private void CreateGrid()
     {
+        // initialize empty grid of size
         _grid = new Cell[_gridWidth, _gridHeight];
 
         for (int i = 0; i < _grid.GetLength(0); i++)
         {
             for (int j = 0; j < _grid.GetLength(1); j++) 
             {
+                // instantiate where 0,0 is at the top left (i've been using p5js coordinates a lot so this is familiar to me)
                 Vector2 gridPos = new Vector2(i,-j);
                 _grid[i,j] = Instantiate(_cell, gridPos, Quaternion.identity);
             }
         }
 
+        // center camera on grid
         Camera.main.transform.position = new Vector3(_gridWidth / 2 - 0.5f, -_gridHeight / 2 - 0.5f, Camera.main.transform.position.z);
+        // resize camera to fit grid inside
         Camera.main.orthographicSize = (_gridHeight > _gridWidth ? _gridHeight / 2 : _gridWidth / 2) + 1;
     }
 
@@ -54,21 +61,26 @@ public class GenerateGrid : MonoBehaviour
             {
                 Cell curCell = _grid[i,j];
 
+                // get top 3 neighboring cells
                 int trNeighbor = _grid[Wrap(i - 1, 0), Wrap(j - 1, 1)].Alive;
                 int tNeighbor = _grid[Wrap(i - 1, 0), j].Alive;
                 int tlNeighbor = _grid[Wrap(i - 1, 0), Wrap(j + 1, 1)].Alive;
 
+                // get left and right neighbors
                 int rNeighbor = _grid[i, Wrap(j - 1, 1)].Alive;
                 int lNeighbor = _grid[i, Wrap(j + 1, 1)].Alive;
 
+                // get bottom 3 neighboring cells
                 int brNeighbor = _grid[Wrap(i + 1, 0), Wrap(j - 1, 1)].Alive;
                 int bNeighbor = _grid[Wrap(i + 1, 0), j].Alive;
                 int blNeighbor = _grid[Wrap(i + 1, 0), Wrap(j + 1, 1)].Alive;
 
+                // add all neighbors
                 int aliveNeighbors = trNeighbor + tNeighbor + tlNeighbor + rNeighbor + lNeighbor + brNeighbor + bNeighbor + blNeighbor;
 
                 if(curCell.Alive == 1)
                 {
+                    // alive rules
                     if(aliveNeighbors > 1 && aliveNeighbors < 4)
                     {
                         _grid[i, j].NextAlive = 1;
@@ -80,6 +92,7 @@ public class GenerateGrid : MonoBehaviour
                 }
                 else
                 {
+                    // dead rules
                     if(aliveNeighbors == 3)
                     {
                         _grid[i, j].NextAlive = 1;
@@ -94,6 +107,7 @@ public class GenerateGrid : MonoBehaviour
 
         foreach(Cell cell in _grid)
         {
+            // update cells in grid
             cell.LastAlive = cell.Alive;
             cell.Alive = cell.NextAlive;
         }
@@ -101,13 +115,16 @@ public class GenerateGrid : MonoBehaviour
 
     private int Wrap(int index, int axis)
     {
+        // returns the correct index for wrapping should it be out of bounds
         return (index + _grid.GetLength(axis)) % _grid.GetLength(axis);
     }
 
     public void Play()
     {
+        // do not play if already playing
         if (_playRoutine == null)
         {
+            // play
             _looping = true;
             _playRoutine = StartCoroutine(PlayRoutine());
         }
@@ -115,6 +132,7 @@ public class GenerateGrid : MonoBehaviour
 
     public void Stop()
     {
+        // stop current coroutine
         _playRoutine = null;
         _looping = false;
     }
@@ -123,6 +141,7 @@ public class GenerateGrid : MonoBehaviour
     {
         foreach (Cell cell in _grid)
         {
+            // reset values of all cells
             cell.LastAlive = 0;
             cell.Alive = 0;
             cell.NextAlive = 0;
@@ -133,8 +152,10 @@ public class GenerateGrid : MonoBehaviour
     {
         foreach (Cell cell in _grid)
         {
+            // randomize cell state
             int rng = UnityEngine.Random.Range(0, 2);
             cell.LastAlive = 0;
+            cell.NextAlive = 0;
             cell.Alive = rng;
         }
     }
@@ -210,7 +231,8 @@ public class GenerateGrid : MonoBehaviour
 
     public void ChangeSpeed(Single value)
     {
-        _stepTime = value;
+        // set steps per second to the slider value
+        _stepTime = 1 / value;
     }
 
     private IEnumerator PlayRoutine()
@@ -221,7 +243,7 @@ public class GenerateGrid : MonoBehaviour
 
             if(_looping) GenerateNextStep();
         }
-
+        // failsafe to clear cached coroutine
         _playRoutine = null;
     }
 }
